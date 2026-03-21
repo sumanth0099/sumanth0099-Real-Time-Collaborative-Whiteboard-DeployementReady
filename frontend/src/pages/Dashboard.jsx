@@ -55,6 +55,13 @@ export default function Dashboard() {
         method: 'POST',
         credentials: 'include'
       });
+      
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(`Failed to create board: ${errData.error || 'Unknown error'}`);
+        return;
+      }
+
       const data = await res.json();
       if (data.boardId) {
         navigate(`/board/${data.boardId}`);

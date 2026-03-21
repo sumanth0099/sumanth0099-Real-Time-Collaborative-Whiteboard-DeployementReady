@@ -229,6 +229,9 @@ const ensureAuthenticated = async (req, res, next) => {
 
 // Create a new board
 app.post('/api/boards', ensureAuthenticated, async (req, res) => {
+  if (!process.env.DATABASE_URL) {
+    return res.status(503).json({ error: 'Database not configured. Please set DATABASE_URL (see render.yaml or walkthrough.md)' });
+  }
   try {
     const boardId = crypto.randomUUID();
     let ownerId = null;
@@ -253,6 +256,10 @@ app.post('/api/boards', ensureAuthenticated, async (req, res) => {
 
 // Get all boards
 app.get('/api/boards', ensureAuthenticated, async (req, res) => {
+  if (!process.env.DATABASE_URL) {
+    console.warn('GET /api/boards called but DATABASE_URL is missing. Returning empty array.');
+    return res.status(200).json([]);
+  }
   try {
     let ownerId = null;
     if (req.user && typeof req.user.id !== 'string') {
