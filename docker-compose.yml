@@ -1,39 +1,32 @@
 version: '3.8'
+
 services:
-  backend:
-    build: ./backend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/whiteboard
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://whiteboard_user:whiteboard_password@db:5432/whiteboard_db
+      - JWT_SECRET=dev-secret-key
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-dummy-id}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-dummy-secret}
     depends_on:
       db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
 
   db:
-    image: postgres:13
+    image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=whiteboard
+      - POSTGRES_USER=whiteboard_user
+      - POSTGRES_PASSWORD=whiteboard_password
+      - POSTGRES_DB=whiteboard_db
     volumes:
       - ./backend/seeds:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d whiteboard"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U whiteboard_user -d whiteboard_db"]
+      interval: 5s
       timeout: 5s
       retries: 5

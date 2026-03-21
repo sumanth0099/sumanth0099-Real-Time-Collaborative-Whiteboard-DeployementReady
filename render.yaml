@@ -1,0 +1,24 @@
+services:
+  # The unified Whiteboard Web Service
+  - type: web
+    name: collaborative-whiteboard
+    runtime: docker
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: whiteboard-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+# The Managed PostgreSQL Database
+databases:
+  - name: whiteboard-db
+    plan: free
