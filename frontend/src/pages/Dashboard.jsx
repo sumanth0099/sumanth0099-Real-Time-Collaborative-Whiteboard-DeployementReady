@@ -33,7 +33,12 @@ export default function Dashboard() {
           credentials: 'include'
         });
         const boardsData = await boardsRes.json();
-        setBoards(boardsData);
+        if (Array.isArray(boardsData)) {
+          setBoards(boardsData);
+        } else {
+          console.error('Expected array of boards, but got:', boardsData);
+          setBoards([]); // Fallback to empty array to avoid .map() crash
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {

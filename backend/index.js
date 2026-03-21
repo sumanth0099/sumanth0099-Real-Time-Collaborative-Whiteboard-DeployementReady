@@ -60,9 +60,22 @@ const io = new Server(server, {
   }
 });
 
+if (!process.env.DATABASE_URL) {
+  console.warn('WARNING: DATABASE_URL is not set. Database operations will fail.');
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Test DB connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Database Connection Error:', err.message);
+  } else {
+    console.log('Database Connected Successfully');
+  }
 });
 
 app.use(session({
