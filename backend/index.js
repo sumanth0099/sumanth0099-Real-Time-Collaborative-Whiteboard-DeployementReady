@@ -73,14 +73,30 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test DB connection
+// Test DB connection and Initialize Schema
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Database Connection Error:', err.message);
   } else {
     console.log('Database Connected Successfully');
+    initializeDatabase();
   }
 });
+
+async function initializeDatabase() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const initSqlPath = path.resolve(__dirname, 'seeds', 'init.sql');
+    if (fs.existsSync(initSqlPath)) {
+      console.log('Initializing database schema...');
+      const initSql = fs.readFileSync(initSqlPath, 'utf8');
+      await pool.query(initSql);
+      console.log('Database schema initialized.');
+    }
+  } catch (error) {
+    console.error('Error initializing database schema:', error.message);
+  }
+}
 
 app.use(session({
   secret: process.env.JWT_SECRET || 'secret-keyboard-cat',
