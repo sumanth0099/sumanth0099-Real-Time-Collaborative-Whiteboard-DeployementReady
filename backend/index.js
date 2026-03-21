@@ -61,8 +61,12 @@ const io = new Server(server, {
 });
 
 if (!process.env.DATABASE_URL) {
-  console.warn('WARNING: DATABASE_URL is not set. Database operations will fail.');
+  console.warn('WARNING: DATABASE_URL is not set. Using IN-MEMORY storage (Live Demo Mode).');
 }
+
+// In-memory stores for Live Demo Mode
+const memoryBoards = []; // [{ id, owner_id, created_at }]
+const memoryObjects = new Map(); // Map<boardId, objectsArray>
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -229,24 +233,24 @@ const ensureAuthenticated = async (req, res, next) => {
 
 // Create a new board
 app.post('/api/boards', ensureAuthenticated, async (req, res) => {
-  if (!process.env.DATABASE_URL) {
-    return res.status(503).json({ error: 'Database not configured. Please set DATABASE_URL (see render.yaml or walkthrough.md)' });
+  const boardId = crypto.randomUUID();
+  let ownerId = null;
+  if (req.user && typeof req.user.id !== 'string') {
+    ownerId = req.user.id;
   }
+
+  if (!process.env.DATABASE_URL) {
+    // Demo Mode: Save to memory
+    memoryBoards.push({ id: boardId, owner_id: ownerId, created_at: new Date() });
+    memoryObjects.set(boardId, []);
+    return res.status(201).json({ boardId, mode: 'demo' });
+  }
+
   try {
-    const boardId = crypto.randomUUID();
-    let ownerId = null;
-    
-    // Test user ID is string "eval-test-user-id", but DB schema has owner_id INTEGER.
-    // If the authenticated user has integer ID, use it, else keep null.
-    if (req.user && typeof req.user.id !== 'string') {
-        ownerId = req.user.id;
-    }
-    
     await pool.query(
       'INSERT INTO boards (id, owner_id) VALUES ($1, $2)',
-      [boardId, Number.isInteger(ownerId) ? ownerId : null]
+      [boardId, ownerId]
     );
-    
     res.status(201).json({ boardId });
   } catch (error) {
     console.error('Error creating board:', error);
@@ -256,22 +260,22 @@ app.post('/api/boards', ensureAuthenticated, async (req, res) => {
 
 // Get all boards
 app.get('/api/boards', ensureAuthenticated, async (req, res) => {
-  if (!process.env.DATABASE_URL) {
-    console.warn('GET /api/boards called but DATABASE_URL is missing. Returning empty array.');
-    return res.status(200).json([]);
+  let ownerId = null;
+  if (req.user && typeof req.user.id !== 'string') {
+    ownerId = req.user.id;
   }
+
+  if (!process.env.DATABASE_URL) {
+    // Demo Mode: Filter from memory
+    const userBoards = memoryBoards.filter(b => b.owner_id === ownerId || b.owner_id === null);
+    return res.status(200).json(userBoards);
+  }
+
   try {
-    let ownerId = null;
-    if (req.user && typeof req.user.id !== 'string') {
-        ownerId = req.user.id;
-    }
-    
-    // For the test user, we might want to return all boards or just special ones
     const result = await pool.query(
-      'SELECT id, name, updated_at FROM boards WHERE owner_id = $1 OR owner_id IS NULL ORDER BY updated_at DESC',
+      'SELECT id, owner_id, created_at FROM boards WHERE owner_id = $1 OR owner_id IS NULL ORDER BY created_at DESC',
       [ownerId]
     );
-    
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error fetching boards:', error);
@@ -281,25 +285,29 @@ app.get('/api/boards', ensureAuthenticated, async (req, res) => {
 
 // Save a board state
 app.post('/api/boards/:boardId', ensureAuthenticated, async (req, res) => {
-  try {
-    const { boardId } = req.params;
-    const { objects } = req.body;
-    
-    let ownerId = null;
-    if (req.user && typeof req.user.id !== 'string') {
-        ownerId = req.user.id;
+  const { boardId } = req.params;
+  const { objects } = req.body;
+  let ownerId = null;
+  if (req.user && typeof req.user.id !== 'string') {
+    ownerId = req.user.id;
+  }
+
+  if (!process.env.DATABASE_URL) {
+    // Demo Mode: Update memory
+    const board = memoryBoards.find(b => b.id === boardId);
+    if (!board || (board.owner_id !== null && board.owner_id !== ownerId)) {
+      return res.status(404).json({ error: 'Board not found or access denied' });
     }
-    
-    // Check permission: Must be owner or board must be public (NULL owner_id)
+    memoryObjects.set(boardId, objects || []);
+    return res.status(200).json({ success: true, boardId, mode: 'demo' });
+  }
+
+  try {
     const result = await pool.query(
       'UPDATE boards SET data = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND (owner_id = $3 OR owner_id IS NULL) RETURNING *',
       [JSON.stringify(objects || []), boardId, ownerId]
     );
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Board not found' });
-    }
-    
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Board not found' });
     res.status(200).json({ success: true, boardId });
   } catch (error) {
     console.error('Error saving board:', error);
@@ -309,29 +317,33 @@ app.post('/api/boards/:boardId', ensureAuthenticated, async (req, res) => {
 
 // Load a board state
 app.get('/api/boards/:boardId', ensureAuthenticated, async (req, res) => {
-  try {
-    const { boardId } = req.params;
-    
-    let ownerId = null;
-    if (req.user && typeof req.user.id !== 'string') {
-        ownerId = req.user.id;
-    }
+  const { boardId } = req.params;
+  let ownerId = null;
+  if (req.user && typeof req.user.id !== 'string') {
+    ownerId = req.user.id;
+  }
 
+  if (!process.env.DATABASE_URL) {
+    // Demo Mode: Fetch from memory
+    const board = memoryBoards.find(b => b.id === boardId);
+    if (!board || (board.owner_id !== null && board.owner_id !== ownerId)) {
+      return res.status(404).json({ error: 'Board not found' });
+    }
+    return res.status(200).json({
+      boardId,
+      objects: memoryObjects.get(boardId) || [],
+      updatedAt: board.created_at
+    });
+  }
+
+  try {
     const result = await pool.query(
       'SELECT data, updated_at FROM boards WHERE id = $1 AND (owner_id = $2 OR owner_id IS NULL)',
       [boardId, ownerId]
     );
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Board not found' });
-    }
-    
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Board not found' });
     const board = result.rows[0];
-    res.status(200).json({
-      boardId,
-      objects: board.data || [],
-      updatedAt: board.updated_at
-    });
+    res.status(200).json({ boardId, objects: board.data || [], updatedAt: board.updated_at });
   } catch (error) {
     console.error('Error loading board:', error);
     res.status(500).json({ error: 'Failed to load board' });
