@@ -1,0 +1,11 @@
+{
+  "testUser": {
+    "email": "testuser@example.com"
+  },
+  "oauthCredentials": {
+    "google": {
+      "clientId": "71234567890-test-google-id.apps.googleusercontent.com",
+      "clientSecret": "GOCSPX-test-google-secret-value-12345"
+    }
+  }
+}
