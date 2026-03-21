@@ -1,0 +1,19 @@
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Run Backend
+FROM node:20-alpine
+WORKDIR /app
+COPY backend/package*.json ./backend/
+RUN cd backend && npm install
+COPY backend/ ./backend/
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+EXPOSE 3001
+WORKDIR /app/backend
+CMD ["npm", "start"]

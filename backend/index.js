@@ -32,9 +32,10 @@ if (fs.existsSync(submissionPath)) {
   } catch (e) {}
 }
 
-app.get('/', (req, res) => {
-  res.send('Whiteboard Backend is Up and Running! Use /health for service status.');
-});
+// Root route for backend diagnostic (removed to allow frontend serving at /)
+// app.get('/', (req, res) => {
+//   res.send('Whiteboard Backend is Up and Running! Use /health for service status.');
+// });
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -53,15 +54,25 @@ const io = new Server(server, {
 });
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 app.use(session({
   secret: process.env.JWT_SECRET || 'secret-keyboard-cat',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', 
+    maxAge: 24 * 60 * 60 * 1000 
+  }
 }));
+
+// Serve static files from the frontend build directory
+const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+}
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -378,6 +389,14 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// Handle React Router's SPA routing (must be after other routes)
+if (fs.existsSync(frontendDistPath)) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
+
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });
