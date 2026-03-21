@@ -159,7 +159,7 @@ app.get('/api/auth/google',
 app.get('/api/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect(`${FRONTEND_URL}/`);
+    res.redirect('/');
   }
 );
 
@@ -186,7 +186,7 @@ app.get('/api/auth/logout', (req, res) => {
     }
     // Set to manual clear or session destroy if needed
     req.session.destroy(() => {
-      res.redirect(`${FRONTEND_URL}/login`);
+      res.redirect('/login');
     });
   });
 });
