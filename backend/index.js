@@ -40,7 +40,14 @@ if (fs.existsSync(submissionPath)) {
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 app.use(cors({ 
-  origin: FRONTEND_URL, 
+  origin: (origin, callback) => {
+    // Allow same-origin requests (where origin is undefined) or FRONTEND_URL
+    if (!origin || origin === FRONTEND_URL || FRONTEND_URL === '*') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true 
 }));
 app.use(express.json());

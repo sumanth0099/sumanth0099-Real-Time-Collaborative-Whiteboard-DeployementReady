@@ -5,7 +5,7 @@ import { Stage, Layer, Line, Rect, Circle, Text } from 'react-konva';
 import { v4 as uuidv4 } from 'uuid';
 import { useStore } from '../store';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 export default function Board() {
   const { boardId } = useParams();

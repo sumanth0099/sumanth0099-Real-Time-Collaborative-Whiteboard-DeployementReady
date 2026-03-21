@@ -38,7 +38,7 @@ function checkStatus() {
       });
     });
   }).on('error', (err) => {
-    console.error('❌ Error checking backend health:', err.message);
+    console.error(`❌ Error checking backend health: ${err.message}`);
     process.exit(1);
   });
 }
