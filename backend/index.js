@@ -39,15 +39,15 @@ if (fs.existsSync(submissionPath)) {
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+// Serve static files from the frontend build directory
+// Move this early to ensure assets are served before other middlewares
+const frontendDistPath = path.resolve(__dirname, '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+}
+
 app.use(cors({ 
-  origin: (origin, callback) => {
-    // Allow same-origin requests (where origin is undefined) or FRONTEND_URL
-    if (!origin || origin === FRONTEND_URL || FRONTEND_URL === '*') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.NODE_ENV === 'production' ? true : FRONTEND_URL, 
   credentials: true 
 }));
 app.use(express.json());
@@ -74,12 +74,6 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 
   }
 }));
-
-// Serve static files from the frontend build directory
-const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
-if (fs.existsSync(frontendDistPath)) {
-  app.use(express.static(frontendDistPath));
-}
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -403,6 +397,12 @@ if (fs.existsSync(frontendDistPath)) {
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
+
+// Final error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
 
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
