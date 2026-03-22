@@ -138,6 +138,17 @@ export default function Board() {
       if (socket) {
         socket.emit('addObject', { boardId, data: newRect });
       }
+    } else if (currentTool === 'eraser') {
+      const newEraser = {
+        id,
+        type: 'eraser',
+        points: [pos.x, pos.y],
+        size: brushSize,
+      };
+      addObject(newEraser, true);
+      if (socket) {
+        socket.emit('draw', { boardId, data: newEraser });
+      }
     }
   };
 
@@ -170,6 +181,12 @@ export default function Board() {
       updateObject(obj.id, updatedRect);
       if (socket) {
         socket.emit('addObject', { boardId, data: { ...obj, ...updatedRect } });
+      }
+    } else if (currentTool === 'eraser' && obj.type === 'eraser') {
+      const updatedLine = { points: [...obj.points, pos.x, pos.y] };
+      updateObject(obj.id, updatedLine);
+      if (socket) {
+        socket.emit('draw', { boardId, data: { ...obj, ...updatedLine } });
       }
     }
   };
@@ -235,6 +252,13 @@ export default function Board() {
           style={{ fontWeight: currentTool === 'rectangle' ? 'bold' : 'normal', padding: '5px 10px' }}
         >
           Rectangle
+        </button>
+        <button 
+          data-testid="tool-eraser"
+          onClick={() => setCurrentTool('eraser')}
+          style={{ fontWeight: currentTool === 'eraser' ? 'bold' : 'normal', padding: '5px 10px' }}
+        >
+          Eraser
         </button>
 
         <button 
@@ -344,6 +368,19 @@ export default function Board() {
                     width={obj.width}
                     height={obj.height}
                     fill={obj.fill}
+                  />
+                );
+              } else if (obj.type === 'eraser') {
+                return (
+                  <Line
+                    key={obj.id}
+                    points={obj.points}
+                    stroke="white"
+                    strokeWidth={obj.size}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                    globalCompositeOperation="destination-out"
                   />
                 );
               }

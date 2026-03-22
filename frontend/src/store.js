@@ -71,7 +71,7 @@ export const useStore = create((set) => ({
     undoStack: state.undoStack.filter(a => a.obj.id !== id),
     redoStack: state.redoStack.filter(a => a.obj.id !== id)
   })),
-  currentTool: 'pen', // 'pen' | 'rectangle'
+  currentTool: 'pen', // 'pen' | 'rectangle' | 'eraser'
   setCurrentTool: (tool) => set({ currentTool: tool }),
   brushColor: '#000000',
   setBrushColor: (color) => set({ brushColor: color }),
