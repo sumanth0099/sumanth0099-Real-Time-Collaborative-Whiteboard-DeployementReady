@@ -111,7 +111,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+      <main style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
           <h2 style={{ fontSize: '24px', color: '#0f172a' }}>My Whiteboards</h2>
           <button 
@@ -138,7 +138,7 @@ export default function Dashboard() {
             <p style={{ color: '#64748b', fontSize: '18px' }}>No boards yet. Create your first one to get started!</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
             {boards.map(board => (
               <div 
                 key={board.id} 
@@ -163,9 +163,9 @@ export default function Dashboard() {
                   e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                 }}
               >
-                <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#334155' }}>{board.name}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#334155' }}>{board.name || `Board ${board.id.substring(0, 8)}`}</div>
                 <div style={{ color: '#94a3b8', fontSize: '13px' }}>
-                  Last updated: {new Date(board.updated_at).toLocaleDateString()}
+                  Last updated: {board.updated_at ? new Date(board.updated_at).toLocaleDateString() : new Date(board.created_at).toLocaleDateString()}
                 </div>
                 <div style={{ fontSize: '12px', color: '#6366f1', marginTop: 'auto' }}>Open Board →</div>
               </div>

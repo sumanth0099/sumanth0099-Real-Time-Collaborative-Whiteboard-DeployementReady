@@ -30,6 +30,10 @@ export default function Board() {
 
   const isDrawing = useRef(false);
   const currentObjectId = useRef(null);
+  const [dimensions, setDimensions] = useState({ 
+    width: window.innerWidth, 
+    height: window.innerHeight - 60 
+  });
 
   useEffect(() => {
     let newSocket;
@@ -94,6 +98,14 @@ export default function Board() {
       });
     };
 
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight - 60
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
     initSocket();
 
     // Expose for automated evaluation tests
@@ -103,6 +115,7 @@ export default function Board() {
 
     return () => {
       if (newSocket) newSocket.disconnect();
+      window.removeEventListener('resize', handleResize);
     };
   }, [boardId]);
 
@@ -236,8 +249,8 @@ export default function Board() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif' }}>
-      <div style={{ padding: '10px', background: '#f4f4f4', borderBottom: '1px solid #ccc', display: 'flex', gap: '15px', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+      <div style={{ padding: '10px', background: '#f4f4f4', borderBottom: '1px solid #ccc', display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: '18px' }}>Board {boardId}</h2>
         <button 
           data-testid="tool-pen"
@@ -276,8 +289,8 @@ export default function Board() {
           Redo
         </button>
         
-        <div style={{ display: 'flex', gap: '5px', ml: 'auto' }}>
-          {['#000000', '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7'].map(color => (
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {['#000000', '#ffffff', '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7'].map(color => (
             <div 
               key={color}
               onClick={() => setBrushColor(color)}
@@ -335,8 +348,8 @@ export default function Board() {
 
       <div style={{ flex: 1, backgroundColor: '#fff', overflow: 'hidden' }}>
         <Stage
-          width={window.innerWidth}
-          height={window.innerHeight - 60}
+          width={dimensions.width}
+          height={dimensions.height}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

@@ -289,7 +289,7 @@ app.get('/api/boards', ensureAuthenticated, async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT id, owner_id, created_at FROM boards WHERE owner_id = $1 OR owner_id IS NULL ORDER BY created_at DESC',
+      'SELECT id, name, owner_id, created_at, updated_at FROM boards WHERE owner_id = $1 OR owner_id IS NULL ORDER BY created_at DESC',
       [ownerId]
     );
     res.status(200).json(result.rows);
